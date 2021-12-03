@@ -1,10 +1,12 @@
 import os
+
+from cv2 import preCornerDetect
 from c3d import *
 from classifier import *
 from utils1.visualization_util import *
 
 
-def run_demo():
+def run_demo(only_graph):
 
     video_name = os.path.basename(cfg.sample_video_path).split('.')[0]
 
@@ -40,17 +42,19 @@ def run_demo():
     # classify using the trained classifier model
     predictions = classifier_model.predict(rgb_feature_bag)
 
-    predictions = np.array(predictions).squeeze()
 
+    predictions = np.array(predictions).squeeze()
     predictions = extrapolate(predictions, num_frames)
 
+    # if predictions[0:len(predictions)] > 0.02:
+    #     print(predictions[0:len(predictions)])
     
     save_path = os.path.join(cfg.output_folder, video_name + '.gif')
     # visualize predictions
     print('Executed Successfully - '+video_name + '.gif saved')
-    visualize_predictions(cfg.sample_video_path, predictions, save_path)
+    visualize_predictions(cfg.sample_video_path, predictions, save_path, only_graph)
 
 
 if __name__ == '__main__':
-    run_demo()
+    run_demo(1)
     print("DONE!!!!")
