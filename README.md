@@ -16,5 +16,5 @@ https://drive.google.com/drive/folders/1JoCgPkSR0kjeqejqFGjCnqiRlJ4iJ-lF?usp=sha
 
 2. Run the detection script
 ```
-python test_detect.py
+python test_withCamera.py
 ```
