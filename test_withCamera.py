@@ -1,12 +1,42 @@
+from email import message
 import os
-
 from cv2 import preCornerDetect
+from numpy.lib.function_base import average
+from tensorflow.python.keras.layers.pooling import AvgPool3D
 from c3d import *
 from classifier import *
 from utils1.visualization_util import *
-   
+import smtplib, ssl
+import datetime
+import threading
+
+def send_mail(message):
+    port = 465  # For SSL
+    smtp_server = "smtp.gmail.com"
+    sender_email = "teamdrishya.manthan@gmail.com"  # Enter your address
+    receiver_email = "iamjeevank2000@gmail.com"  # Enter receiver address
+    password = 'drishya123'  
+
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+        server.login(sender_email, password)
+        server.sendmail(sender_email, receiver_email, message)
+
 
 def run_demo(only_graph):
+
+    # port = 465  # For SSL
+    # smtp_server = "smtp.gmail.com"
+    # sender_email = "teamdrishya.manthan@gmail.com"  # Enter your address
+    # receiver_email = "iamjeevank2000@gmail.com"  # Enter receiver address
+    # password = 'drishya123'
+
+
+    # context = ssl.create_default_context()
+    # with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+    #     server.login(sender_email, password)
+    #     server.sendmail(sender_email, receiver_email, message)
+
 
     video_name = os.path.basename(cfg.sample_video_path).split('.')[0]
 
@@ -15,6 +45,8 @@ def run_demo(only_graph):
     classifier_model = build_classifier_model()
 
     print("Models initialized")
+
+    prediction_list = []
 
     cap = cv2.VideoCapture(0)
 
@@ -65,16 +97,30 @@ def run_demo(only_graph):
         
         save_path = os.path.join(cfg.output_folder, video_name + '.gif')
         # visualize predictions
+        prediction_list.append(predictions)
         visualize_predictions(cfg.sample_video_path, predictions, save_path, only_graph, num_frames)
 
-        if max(predictions[0:num_frames])*100000 > 5:
-            cv2.putText(frame, 'DETECTED', (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1,(0,0,255), 2, cv2.LINE_AA)
+        if average(predictions[0:num_frames])*100000 > 40:
+            op = 'ABNORMAL | '+str(average(predictions[0:num_frames])*100000)
+            cv2.putText(frame, op, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1,(0,0,255), 2, cv2.LINE_AA)
+            message = """\
+            Subject: Abnormal Event Detected 
+
+            CCTV-ID  : 2981\n
+            Timestamp: {}.""".format(datetime.datetime.now()) 
+            mail_thread = threading.Thread(target=send_mail, args=(message,))
+            mail_thread.start()
         else:
-            cv2.putText(frame, 'NORMAL', (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1,(0,255,0), 2, cv2.LINE_AA)
+            op = 'NORMAL | '+str(average(predictions[0:num_frames])*100000)
+            cv2.putText(frame, op , (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1,(0,255,0), 2, cv2.LINE_AA)
 
         cv2.imshow('Frame',frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
+            x = range(0, len(prediction_list))
+            y = prediction_list[::]
+            plt.plot(x, y, '-')
+            plt.savefig("output_camera.png")
             break
 
 
